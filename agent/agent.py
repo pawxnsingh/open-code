@@ -1,0 +1,61 @@
+from __future__ import annotations
+from typing import AsyncGenerator
+from agent.event import AgentEvent
+from client.llm_client import LLMCLient  # ChatMessage
+from context.manager import ContextManager
+from client.response import StreamEventType
+
+
+class Agent:
+    def __init__(self):
+        self.client = LLMCLient()
+        self.context_manager = ContextManager()
+
+    async def run(self, message: str):
+        final_content = None
+        yield AgentEvent.agent_start(message)
+        self.context_manager.add_user_message(content=message)
+
+        async for event in self._agent_loop():
+            yield event
+
+            if event.type == StreamEventType.MESSAGE_COMPLETE:
+                final_content = event.data.get("content")
+
+        yield AgentEvent.agent_end(final_content)
+
+    # this _agent_loop, will be the multi turn conversations
+    async def _agent_loop(self) -> AsyncGenerator[AgentEvent, None]:
+        response_text = ""
+        
+        messages = self.context_manager.get_message()
+        async for event in self.client.chat_completion(messages=messages, stream=True):
+            if event.type == StreamEventType.TEXT_DELTA:
+                if event.type:
+                    content = event.text_delta.content
+                    response_text += content
+                    yield AgentEvent.text_delta(content)
+
+            elif event.type == StreamEventType.ERROR:
+                yield AgentEvent.agent_error(
+                    event.error or "Unknown error",
+                )
+                
+        self.context_manager.add_assistant_message(content=response_text)
+        if response_text:
+            yield AgentEvent.text_complete(
+                content=response_text,
+            )
+
+    async def __aenter__(self) -> Agent:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type,
+        exc_val,
+        exc_tb,
+    ) -> None:
+        if self.client:
+            await self.client.close()
+            self.client = None
