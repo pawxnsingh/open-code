@@ -1,15 +1,18 @@
 from __future__ import annotations
+from pathlib import Path
 from typing import AsyncGenerator
 from agent.event import AgentEvent
 from client.llm_client import LLMCLient  # ChatMessage
 from context.manager import ContextManager
-from client.response import StreamEventType
+from client.response import StreamEventType, ToolCall, ToolResultMessage
+from tools.registry import create_default_registry
 
 
 class Agent:
     def __init__(self):
         self.client = LLMCLient()
         self.context_manager = ContextManager()
+        self.tool_registry = create_default_registry()
 
     async def run(self, message: str):
         final_content = None
@@ -27,24 +30,65 @@ class Agent:
     # this _agent_loop, will be the multi turn conversations
     async def _agent_loop(self) -> AsyncGenerator[AgentEvent, None]:
         response_text = ""
-        
+        tool_schemas = self.tool_registry.get_schemas()
+        tool_calls: list[ToolCall] = []
+
         messages = self.context_manager.get_message()
-        async for event in self.client.chat_completion(messages=messages, stream=True):
+        async for event in self.client.chat_completion(
+            messages=messages, tools=tool_schemas if tool_schemas else None, stream=True
+        ):
             if event.type == StreamEventType.TEXT_DELTA:
                 if event.type:
                     content = event.text_delta.content
                     response_text += content
                     yield AgentEvent.text_delta(content)
 
+            elif event.type == StreamEventType.TOOL_CALL_COMPLETED:
+                if event.tool_call:
+                    tool_calls.append(event.tool_call)
+
             elif event.type == StreamEventType.ERROR:
                 yield AgentEvent.agent_error(
                     event.error or "Unknown error",
                 )
-                
+
         self.context_manager.add_assistant_message(content=response_text)
         if response_text:
             yield AgentEvent.text_complete(
                 content=response_text,
+            )
+
+        tool_call_results: list[ToolResultMessage] = []
+
+        for tool_call in tool_calls:
+            yield AgentEvent.tool_call_start(
+                call_id=tool_call.call_id,
+                name=tool_call.name,
+                arguments=tool_call.arguments,
+            )
+
+            result = await self.tool_registry.invoke(
+                name=tool_call.name,
+                params=tool_call.arguments,
+                cwd=Path.cwd(),
+            )
+
+            yield AgentEvent.tool_call_complete(
+                call_id=tool_call.call_id, name=tool_call.name, result=result
+            )
+
+            tool_call_results.append(
+                ToolResultMessage(
+                    tool_call_id=tool_call.call_id,
+                    content=result.to_model_output(),
+                    is_error=not result.success,
+                )
+            )
+
+        for tool_result in tool_call_results:
+            self.context_manager.add_tool_result(
+                tool_call_id=tool_result.tool_call_id,
+                content=tool_result.content,
             )
 
     async def __aenter__(self) -> Agent:
