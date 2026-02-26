@@ -1,6 +1,7 @@
 from agent.event import AgentEventType
 from ui.tui import get_console, TUI
 from agent.agent import Agent
+from pathlib import Path
 from dotenv import load_dotenv
 import asyncio
 import click
@@ -23,6 +24,36 @@ class CLI:
             response = await self._process_message(message)
             return response
 
+    async def run_interactive(self) -> str | None:
+        # we will be using this later in other helper functions
+        self.tui.print_welcome(
+            title="100xCLI agent (made by pawxnsingh while half asleep)",
+            lines=[
+                "model: gpt-5.2",
+                f"cwd: {Path.cwd()}",
+                "commands: /models /help /config /approval /exit"
+            ],
+        )
+
+        async with Agent() as agent:
+            self.agent = agent
+
+            while True:
+                try:
+                    input_message = console.input("\n[user]>[/user]").strip()
+                    
+                    if input_message == "/exit":
+                        break
+
+                    await self._process_message(input_message)
+                
+                except KeyboardInterrupt:
+                    console.print("\n[dim] use /exit to quit[/dim]")
+                except EOFError:
+                    break
+
+        console.print("\n[dim]Goodbye!![/dim]")
+
     def _get_tool_kind(self, tool_name: str) -> str:
         tool = self.agent.tool_registry.get(tool_name)
         if not tool:
@@ -38,7 +69,6 @@ class CLI:
         final_response: str | None = None
 
         async for event in self.agent.run(message):
-            print(event)
             if event.type == AgentEventType.TEXT_DELTA:
                 content = event.data.get("content", "")
                 if not assistant_streaming:
@@ -103,6 +133,8 @@ def main(prompt: str | None):
         result = asyncio.run(cli.run_single(prompt))
         if result is None:
             sys.exit(1)
+    else:
+        asyncio.run(cli.run_interactive())
 
 
 main()

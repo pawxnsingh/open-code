@@ -108,6 +108,19 @@ class TUI:
             ".sql": "sql",
         }.get(suffix, "text")
 
+    def print_welcome(self, title: str, lines: list[str]):
+        body = "\n".join(lines)
+        panel = Panel(
+            renderable=Text(body, style="code"),
+            title=Text(title, style="highlight"),
+            box=box.ROUNDED,
+            border_style="border",
+            title_align="left",
+            padding=(1, 2),
+        )
+
+        self.console.print(panel)
+
     def _ordered_args(self, tool_name: str, args: dict[str, Any]) -> list[tuple]:
         _PREFERED_ORDER = {"read_file": ["path", "offset", "limit"]}
 

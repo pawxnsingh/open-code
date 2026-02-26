@@ -52,7 +52,22 @@ class Agent:
                     event.error or "Unknown error",
                 )
 
-        self.context_manager.add_assistant_message(content=response_text)
+        self.context_manager.add_assistant_message(
+            content=response_text,
+            tool_calls=[
+                {
+                    "id": tc.call_id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.name,
+                        "arguments": str(tc.arguments),
+                    },
+                }
+                for tc in tool_calls
+            ]
+            if tool_calls
+            else None,
+        )
         if response_text:
             yield AgentEvent.text_complete(
                 content=response_text,
