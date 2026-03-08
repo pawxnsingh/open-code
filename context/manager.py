@@ -2,6 +2,7 @@ from prompts.system import get_system_prompt
 from dataclasses import dataclass, field
 from utils.text import count_tokens
 from typing import Literal, Any
+from config.config import Config
 from datetime import datetime
 
 
@@ -30,10 +31,11 @@ class MessageItem:
 
 
 class ContextManager:
-    def __init__(self) -> None:
-        self._system_prompt = get_system_prompt()
+    def __init__(self, config: Config) -> None:
+        self._system_prompt = get_system_prompt(config)
+        self.config = config
         self._messages: list[MessageItem] = []
-        self._model_name = "minimax.minimax-m2"
+        self._model_name = self.config.model_name
 
     def add_user_message(self, content: str) -> None:
         item = MessageItem(
@@ -59,7 +61,7 @@ class ContextManager:
                 content,
                 model=self._model_name,
             ),
-            tool_calls=tool_calls
+            tool_calls=tool_calls,
         )
 
         self._messages.append(item)

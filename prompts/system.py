@@ -1,4 +1,7 @@
-def get_system_prompt() -> str:
+from config.config import Config
+
+
+def get_system_prompt(config: Config) -> str:
     parts = []
 
     # Identity and role
@@ -16,11 +19,11 @@ def get_system_prompt() -> str:
     # Security guidelines
     parts.append(_get_security_section())
 
-    # if config.developer_instructions:
-    #     parts.append(_get_developer_instructions_section(config.developer_instructions))
+    if config.developer_instructions:
+        parts.append(_get_developer_instructions_section(config.developer_instructions))
 
-    # if config.user_instructions:
-    #     parts.append(_get_user_instructions_section(config.user_instructions))
+    if config.user_instructions:
+        parts.append(_get_user_instructions_section(config.user_instructions))
 
     # if user_memory:
     #     parts.append(_get_memory_section(user_memory))
@@ -29,6 +32,24 @@ def get_system_prompt() -> str:
     parts.append(_get_operational_section())
 
     return "\n\n".join(parts)
+
+
+def _get_developer_instructions_section(instructions: str) -> str:
+    return f"""# Project Instructions
+
+The following instructions were provided by the project maintainers:
+
+{instructions}
+
+Follow these instructions carefully as they contain important context about this specific project."""
+
+
+def _get_user_instructions_section(instructions: str) -> str:
+    return f"""# User Instructions
+
+The user has provided the following custom instructions:
+
+{instructions}"""
 
 
 def _get_identity_section() -> str:
@@ -46,11 +67,11 @@ Your capabilities:
 You are pair programming with the user to help them accomplish their goals. You should be proactive, thorough and focused on delivering high-quality results."""
 
 
-def _get_agents_md_section() -> str:
+def  _get_agents_md_section() -> str:
     """Generate AGENTS.md spec section."""
     return """# AGENTS.md Specification
 
-- Repos often contain AGENTS.md files. These files can appear anywhere within the repository.
+- Rep often contain AGENTS.md files. These files can appear anywhere within the repository.
 - These files are a way for humans to give you (the agent) instructions or tips for working within the container.
 - Some examples might be: coding conventions, info about how code is organized, or instructions for how to run or test code.
 - Instructions in AGENTS.md files:

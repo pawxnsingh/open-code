@@ -2,6 +2,7 @@ from pathlib import Path
 
 from rich import box
 from typing import Any
+from config.config import Config
 from rich.rule import Rule
 from rich.text import Text
 from rich.table import Table
@@ -55,10 +56,12 @@ class TUI:
     def __init__(
         self,
         console: Console | None,
+        config: Config
     ) -> None:
         self.console = console and get_console()
         self._assistant_stream_open = False
-        self.cwd = Path.cwd()
+        self.config = config
+        self.cwd = self.config.cwd
         self._tool_args_by_call_id: dict[str, dict[str, Any]] = {}
 
     def begin_assistant(self):

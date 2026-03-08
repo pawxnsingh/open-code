@@ -3,7 +3,7 @@ from typing import Any, Literal, AsyncGenerator
 from client.response import parse_arguments_response
 from pydantic import BaseModel
 import asyncio
-import os
+from config.config import Config
 
 from client.response import (
     StreamEvent,
@@ -21,16 +21,17 @@ class ChatMessage(BaseModel):
 
 
 class LLMCLient:
-    def __init__(self) -> None:
+    def __init__(self, config: Config) -> None:
         self._client: AsyncAzureOpenAI | None = None
         self._max_retries: int = 3
+        self.config = config
 
     def get_client(self) -> AsyncAzureOpenAI:
         if self._client is None:
             self._client = AsyncAzureOpenAI(
-                api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
-                azure_endpoint=os.environ.get("AZURE_OPENAI_ENDPOINT"),
-                api_version=os.environ.get("AZURE_OPENAI_API_VERSION"),
+                api_key=self.config.api_key,
+                azure_endpoint=self.config.base_url,
+                api_version=self.config.api_version,
             )
         return self._client
 
@@ -67,7 +68,7 @@ class LLMCLient:
         client = self.get_client()
         kwargs = {
             "messages": messages,
-            "model": os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME"),
+            "model": self.config.model_name,
             "stream": stream,
         }
 
