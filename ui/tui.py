@@ -127,6 +127,7 @@ class TUI:
             "write_file": ["path", "create_directories", "content"],
             "edit": ["path", "replace_all", "old_string", "new_string"],
             "shell": ["command", "timeout", "cwd"],
+            "list_dir": ["path", "include_hidden"],
         }
 
         prefered = _PREFERED_ORDER[tool_name]
@@ -266,7 +267,7 @@ class TUI:
                 output_display = truncate_text(
                     text=output,
                     max_tokens=self._max_block_tokens,
-                    model="",
+                    model=self.config.model_name,
                 )
                 blocks.append(
                     Syntax(
@@ -319,6 +320,57 @@ class TUI:
                     word_wrap=True,
                 )
             )
+
+        elif name == "list_dir" and success:
+            entries = metadata.get("entries")
+            path = metadata.get("path")
+            summary = []
+            if isinstance(path, str):
+                summary.append(path)
+
+            if isinstance(entries, int):
+                summary.append(f"{entries} entries")
+
+            if summary:
+                blocks.append(Text(" • ".join(summary), style="muted"))
+
+            output_display = truncate_text(
+                text=output,
+                model=self.config.model_name,
+                max_tokens=self._max_block_tokens,
+            )
+            blocks.append(
+                Syntax(
+                    output_display,
+                    "text",
+                    theme="monokai",
+                    word_wrap=True,
+                )
+            )
+
+        else:
+            if error and not success:
+                blocks.append(Text(error, style="error"))
+
+            output_display = truncate_text(
+                text=output,
+                model=self.config.model_name,
+                max_tokens=self._max_block_tokens,
+            )
+            if output_display.strip():
+                blocks.append(
+                    Syntax(
+                        output_display,
+                        "text",
+                        theme="monokai",
+                        word_wrap=True,
+                    )
+                )
+            else:
+                blocks.append(Text("(no output)", style="muted"))
+
+        if truncated:
+            blocks.append(Text("note: tool output was truncated", style="warning"))
 
         panel = Panel(
             renderable=Group(*blocks),

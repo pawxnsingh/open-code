@@ -112,6 +112,8 @@ class CLI:
                 diff = event.data.get("diff")
                 metadata = event.data.get("metadata", {})
                 exit_code = event.data.get("exit_code")
+                success = event.data.get("success", False)
+                error = event.data.get("error")
 
                 tool_kind = self._get_tool_kind(tool_name=tool_name)
 
@@ -119,8 +121,8 @@ class CLI:
                     call_id=call_id,
                     name=tool_name,
                     tool_kind=tool_kind,
-                    success=True,
-                    error=None,
+                    success=success,
+                    error=error,
                     output=output,
                     diff=diff,
                     metadata=metadata,
