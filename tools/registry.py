@@ -1,5 +1,6 @@
 from tools.base import Tool, ToolResult, ToolInvocation
 from typing import Any
+from config.config import Config
 import logging
 from pathlib import Path
 from tools.builtin import get_all_builtin_tools
@@ -82,10 +83,10 @@ class ToolRegistry:
         return [tool.to_openai_schema() for tool in self.get_tools()]
 
 
-def create_default_registry() -> ToolRegistry:
+def create_default_registry(config: Config) -> ToolRegistry:
     tool_registry = ToolRegistry()
 
     for tool_class in get_all_builtin_tools():
-        tool_registry.register(tool_class())
+        tool_registry.register(tool_class(config=config))
 
     return tool_registry

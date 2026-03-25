@@ -53,16 +53,13 @@ def get_console() -> Console:
 
 
 class TUI:
-    def __init__(
-        self,
-        console: Console | None,
-        config: Config
-    ) -> None:
+    def __init__(self, console: Console | None, config: Config) -> None:
         self.console = console and get_console()
         self._assistant_stream_open = False
         self.config = config
         self.cwd = self.config.cwd
         self._tool_args_by_call_id: dict[str, dict[str, Any]] = {}
+        self._max_block_tokens = 240
 
     def begin_assistant(self):
         self.console.print()
@@ -125,7 +122,12 @@ class TUI:
         self.console.print(panel)
 
     def _ordered_args(self, tool_name: str, args: dict[str, Any]) -> list[tuple]:
-        _PREFERED_ORDER = {"read_file": ["path", "offset", "limit"]}
+        _PREFERED_ORDER = {
+            "read_file": ["path", "offset", "limit"],
+            "write_file": ["path", "create_directories", "content"],
+            "edit": ["path", "replace_all", "old_string", "new_string"],
+            "shell": ["command", "timeout", "cwd"],
+        }
 
         prefered = _PREFERED_ORDER[tool_name]
         ordered: list[tuple[str, Any]] = []
@@ -148,6 +150,17 @@ class TUI:
         table.add_column(style="code", overflow="fold")
 
         for key, value in self._ordered_args(tool_name, args):
+            if key in {"content", "old_string", "new_string"}:
+                line_count = len(value.splitlines()) or 0
+                byte_count = len(value.encode("utf-8", errors="replace"))
+
+                value = f"<{line_count} lines • {byte_count} bytes>"
+
+            # rich.Table expects renderable values (strings, Text, etc.).
+            # Convert non-string scalar values to string to avoid NotRenderableError.
+            if not isinstance(value, (str, Text)):
+                value = str(value)
+
             table.add_row(key, value)
 
         return table
@@ -203,11 +216,15 @@ class TUI:
         output: str,
         error: str | None,
         metadata: dict[str, Any],
+        diff: str | None,
         truncated: bool,
+        exit_code: int | None,
     ):
         border_style = f"tool.{tool_kind}" if tool_kind else "tool"
         status_icon = "✓" if success else "✗"
         status_style = "success" if success else "error"
+
+        args = self._tool_args_by_call_id.get(call_id, {})
 
         primary_path = None
         blocks = []
@@ -259,6 +276,49 @@ class TUI:
                         word_wrap=False,
                     )
                 )
+
+        elif name in {"write_file", "edit"} and success and diff:
+            output_line = output.strip() if output.strip() else "Completed"
+            blocks.append(Text(output_line, style="muted"))
+            diff_text = diff
+
+            diff_display = truncate_text(
+                text=diff_text,
+                model=self.config.model_name,
+                max_tokens=self._max_block_tokens,
+            )
+
+            blocks.append(
+                Syntax(
+                    diff_display,
+                    "diff",
+                    theme="monokai",
+                    word_wrap=True,
+                )
+            )
+
+        elif name in "shell":
+            commands = args.get("commands")
+            if isinstance(commands, str) and commands.strip():
+                blocks.append(Text(f"$ {commands.strip()}", style="muted"))
+
+            if exit_code is not None:
+                blocks.append(Text(f"exit_code={str(exit_code)}", style="muted"))
+
+            output_display = truncate_text(
+                text=output,
+                model=self.config.model_name,
+                max_tokens=self._max_block_tokens,
+            )
+
+            blocks.append(
+                Syntax(
+                    output_display,
+                    "text",
+                    theme="monokai",
+                    word_wrap=True,
+                )
+            )
 
         panel = Panel(
             renderable=Group(*blocks),

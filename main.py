@@ -109,7 +109,9 @@ class CLI:
                 arguments = event.data.get("arguments", {})
                 output = event.data.get("output", "")
                 truncated = event.data.get("truncated", False)
+                diff = event.data.get("diff")
                 metadata = event.data.get("metadata", {})
+                exit_code = event.data.get("exit_code")
 
                 tool_kind = self._get_tool_kind(tool_name=tool_name)
 
@@ -120,8 +122,10 @@ class CLI:
                     success=True,
                     error=None,
                     output=output,
+                    diff=diff,
                     metadata=metadata,
                     truncated=truncated,
+                    exit_code=exit_code,
                 )
 
         return final_response

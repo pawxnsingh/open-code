@@ -4,6 +4,7 @@ from typing import Any
 from enum import Enum
 from dataclasses import dataclass, field
 from pathlib import Path
+from config.config import Config
 from pydantic import BaseModel, ValidationError
 from pydantic.json_schema import model_json_schema
 
@@ -16,6 +17,39 @@ class ToolKind(str, Enum):
     MEMORY = "memory"
     NETWORK = "network"
     MCP = "mcp"
+
+
+@dataclass
+class FileDiff:
+    path: Path
+    old_content: str
+    new_content: str
+
+    is_new_file: bool = False
+    is_deletion: bool = False
+
+    def to_diff(self) -> str:
+        import difflib
+
+        old_lines = self.old_content.splitlines(keepends=True)
+        new_lines = self.new_content.splitlines(keepends=True)
+
+        if old_lines and not old_lines[-1].endswith("\n"):
+            old_lines[-1] += "\n"
+        if new_lines and not new_lines[-1].endswith("\n"):
+            new_lines[-1] += "\n"
+
+        old_name = "/dev/null" if self.is_new_file else str(self.path)
+        new_name = "/dev/null" if self.is_deletion else str(self.path)
+
+        diff = difflib.unified_diff(
+            old_lines,
+            new_lines,
+            fromfile=old_name,
+            tofile=new_name,
+        )
+
+        return "".join(diff)
 
 
 @dataclass
@@ -39,9 +73,11 @@ class ToolConfirmation:
 class ToolResult:
     success: bool
     output: str
+    diff: dict[str, Any] | None = None
     truncated: bool = False
     error: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    exit_code: int | None = None
 
     @classmethod
     def error_result(
@@ -82,7 +118,8 @@ class Tool(abc.ABC):
     description: str = "Base Tool"
     kind: ToolKind = ToolKind.READ
 
-    def __init__(self) -> None:
+    def __init__(self, config: Config) -> None:
+        self.config: Config = config
         super().__init__()
 
     @property

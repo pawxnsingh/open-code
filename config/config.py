@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from pathlib import Path
+from typing import Any
 import os
 
 
@@ -15,11 +16,22 @@ class ModelConfig(BaseModel):
     context_window: int = "400_000"
 
 
+class ShellEnvironmentPolicy(BaseModel):
+    ignore_default_excludes: bool = False
+    exclude_patterns: list = Field(
+        default_factory=lambda: ["*KEY*", "*SECRET*", "*TOKEN*"]
+    )
+    set_vars: dict[str, Any] = Field(default_factory=dict)
+
+
 class Config(BaseModel):
     model: ModelConfig = Field(
         default_factory=ModelConfig,
     )
     cwd: Path = Field(default_factory=Path.cwd)
+    shell_environment: ShellEnvironmentPolicy = Field(
+        default_factory=ShellEnvironmentPolicy
+    )
     max_turns: int = Field(default=100)
 
     developer_instructions: str | None = None

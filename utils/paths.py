@@ -10,6 +10,10 @@ def resolve_path(base: str | Path, path: str | Path):
     return Path(base).resolve() / path
 
 
+def ensure_parent_directory(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+
 def is_binary(path: Path):
     try:
         with open(path, "rb") as f:
