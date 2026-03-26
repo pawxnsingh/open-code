@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "click>=8.3.1",
+    "ddgs>=9.11.4",
     "openai>=2.15.0",
     "platformdirs>=4.9.2",
     "pydantic>=2.12.5",
