@@ -130,6 +130,8 @@ class TUI:
             "list_dir": ["path", "include_hidden"],
             "grep": ["pattern", "case_insensitive", "path"],
             "glob": ["pattern", "path"],
+            "web_search": ["query", "max_results"],
+            "web_fetch": ["url", "timeout"],
             "todos": ["id", "action", "content"],
             "memory": ["action", "key", "value"],
         }
@@ -408,9 +410,9 @@ class TUI:
                 blocks.append(Text(" • ".join(summary), style="muted"))
 
             output_display = truncate_text(
-                output,
-                self.config.model_name,
-                self._max_block_tokens,
+                text=output,
+                model=self.config.model_name,
+                max_tokens=self._max_block_tokens,
             )
             blocks.append(
                 Syntax(
@@ -436,9 +438,9 @@ class TUI:
                 blocks.append(Text(" • ".join(summary), style="muted"))
 
             output_display = truncate_text(
-                output,
-                self.config.model_name,
-                self._max_block_tokens,
+                text=output,
+                model=self.config.model_name,
+                max_tokens=self._max_block_tokens,
             )
             blocks.append(
                 Syntax(
@@ -450,9 +452,9 @@ class TUI:
             )
         elif name == "todos" and success:
             output_display = truncate_text(
-                output,
-                self.config.model_name,
-                self._max_block_tokens,
+                text=output,
+                model=self.config.model_name,
+                max_tokens=self._max_block_tokens,
             )
             blocks.append(
                 Syntax(
@@ -477,9 +479,9 @@ class TUI:
             if summary:
                 blocks.append(Text(" • ".join(summary), style="muted"))
             output_display = truncate_text(
-                output,
-                self.config.model_name,
-                self._max_block_tokens,
+                text=output,
+                model=self.config.model_name,
+                max_tokens=self._max_block_tokens,
             )
             blocks.append(
                 Syntax(
