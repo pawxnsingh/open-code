@@ -136,7 +136,7 @@ class TUI:
             "memory": ["action", "key", "value"],
         }
 
-        prefered = _PREFERED_ORDER[tool_name]
+        prefered = _PREFERED_ORDER.get(tool_name, list(args.keys()))
         ordered: list[tuple[str, Any]] = []
         seen = set()
 

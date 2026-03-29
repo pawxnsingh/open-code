@@ -13,7 +13,7 @@ class ModelConfig(BaseModel):
         ge=0.0,
         le=2.0,
     )
-    context_window: int = "400_000"
+    context_window: int = 400_000
 
 
 class ShellEnvironmentPolicy(BaseModel):
@@ -33,6 +33,11 @@ class Config(BaseModel):
         default_factory=ShellEnvironmentPolicy
     )
     max_turns: int = Field(default=100)
+
+    allowed_tools: list[str] | None = Field(
+        None,
+        description="If set, only these tools will be available to the agent",
+    )
 
     developer_instructions: str | None = None
     user_instructions: str | None = None
@@ -83,3 +88,6 @@ class Config(BaseModel):
             error.append(f"current working directory, dont exist, {self.cwd}")
 
         return error
+
+    def to_dict(self) -> dict[str, Any]:
+        return self.model_dump(mode="json")

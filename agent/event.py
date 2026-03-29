@@ -30,7 +30,12 @@ class AgentEvent:
 
     @classmethod
     def agent_start(cls, message: str) -> AgentEvent:
-        return cls(type=AgentEventType.AGENT_START, data={"message": message})
+        return cls(
+            type=AgentEventType.AGENT_START,
+            data={
+                "message": message,
+            },
+        )
 
     @classmethod
     def agent_end(
@@ -38,7 +43,10 @@ class AgentEvent:
     ) -> AgentEvent:
         return cls(
             type=AgentEventType.AGENT_END,
-            data={"reponse": response, "usage": usage.__dict__ if usage else None},
+            data={
+                "reponse": response,
+                "usage": usage.__dict__ if usage else None,
+            },
         )
 
     @classmethod
@@ -46,22 +54,40 @@ class AgentEvent:
         cls, error: str, details: dict[str, Any] | None = None
     ) -> AgentEvent:
         return cls(
-            type=AgentEventType.AGENT_ERROR, data={"error": error, "details": details}
+            type=AgentEventType.AGENT_ERROR,
+            data={
+                "error": error,
+                "details": details,
+            },
         )
 
     @classmethod
     def text_delta(cls, content: str) -> AgentEvent:
-        return cls(type=AgentEventType.TEXT_DELTA, data={"content": content})
+        return cls(
+            type=AgentEventType.TEXT_DELTA,
+            data={
+                "content": content,
+            },
+        )
 
     @classmethod
     def text_complete(cls, content: str) -> AgentEvent:
-        return cls(type=AgentEventType.TEXT_COMPLETE, data={"content": content})
+        return cls(
+            type=AgentEventType.TEXT_COMPLETE,
+            data={
+                "content": content,
+            },
+        )
 
     @classmethod
     def tool_call_start(cls, call_id: str, name: str, arguments: dict[str, Any]):
         return cls(
             type=AgentEventType.TOOL_CALL_START,
-            data={"call_id": call_id, "name": name, "arguments": arguments},
+            data={
+                "call_id": call_id,
+                "name": name,
+                "arguments": arguments,
+            },
         )
 
     @classmethod

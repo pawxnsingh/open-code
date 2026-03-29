@@ -46,7 +46,7 @@ class ContextManager:
     def add_user_message(self, content: str) -> None:
         item = MessageItem(
             role="user",
-            content=content,
+            content=content or "",
             token_count=count_tokens(
                 content,
                 model=self._model_name,
